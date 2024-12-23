@@ -1,0 +1,18 @@
+services:
+  redis:
+    image: redis
+    restart: always
+    container_name: lanyard_redis
+    ports:
+      - 6379:6379
+  lanyard:
+    image: phpxcoder/lanyardv2:latest
+    restart: always
+    container_name: lanyard
+    depends_on:
+      - redis
+    ports:
+      - 4001:4001
+    environment:
+      BOT_TOKEN: <your_token>
+      REDIS_HOST: redis
