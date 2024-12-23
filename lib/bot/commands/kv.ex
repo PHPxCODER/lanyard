@@ -11,7 +11,7 @@ defmodule Lanyard.DiscordBot.Commands.KV do
 
     DiscordApi.send_message(
       payload["channel_id"],
-      "*`#{Application.get_env(:lanyard, :command_prefix)}get <key>` To Get a Value*\n*`#{Application.get_env(:lanyard, :command_prefix)}del <key>` To Delete an Existing Key*\n*`#{Application.get_env(:lanyard, :command_prefix)}set <key> <value>` To Set a Key*\n\n**Keys:** ```#{kv}```"
+      "*`#{Application.get_env(:lanyard, :command_prefix)}get <key>` To Get a Value*\n*`#{Application.get_env(:lanyard, :command_prefix)}del <key>` To Delete an Existing Key*\n*`#{Application.get_env(:lanyard, :command_prefix)}set <key> <value>` To Set a Key*\n*`#{Application.get_env(:lanyard, :command_prefix)}apikey` To Get Your API Key*\n\n**Keys:** ```#{kv}```"
     )
   end
 end
