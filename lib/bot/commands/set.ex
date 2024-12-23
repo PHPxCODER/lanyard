@@ -25,7 +25,7 @@ defmodule Lanyard.DiscordBot.Commands.Set do
           _ ->
             DiscordApi.send_message(
               payload["channel_id"],
-              "<a:tickmark_cym:1000427958168719390> `#{key}` was Set. View it With `#{Application.get_env(:lanyard, :command_prefix)}get #{key}` or go to https://api.codevizag.com/v1/users/#{payload["author"]["id"]}"
+              "<a:tickmark_cym:1000427958168719390> `#{key}` was Set. View it With `#{Application.get_env(:lanyard, :command_prefix)}get #{key}` or go to https://api.phpxcoder.in/v1/users/#{payload["author"]["id"]}"
             )
         end
     end
