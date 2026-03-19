@@ -3,8 +3,10 @@ defmodule Lanyard.KV.Interface do
   alias Lanyard.Presence
 
   def get_all(user_id) do
-    {:ok, %{kv: kv}} = Presence.get_presence(user_id)
-    kv
+    case Presence.get_presence(user_id) do
+      {:ok, %{kv: kv}} -> kv
+      _ -> %{}
+    end
   end
 
   def get(user_id, key) do
