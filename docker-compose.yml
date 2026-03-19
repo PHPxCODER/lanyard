@@ -1,18 +1,31 @@
 services:
   redis:
-    image: redis
-    restart: always
-    container_name: lanyard_redis
-    ports:
-      - 6379:6379
+    image: redis:alpine
+    deploy:
+      restart_policy:
+        condition: on-failure
+    networks:
+      - lanyard_net
+    volumes:
+      - lanyard-redis-data:/data
+
   lanyard:
-    image: phpxcoder/lanyardv2:latest
-    restart: always
-    container_name: lanyard
-    depends_on:
-      - redis
+    image: ${LANYARD_IMAGE:-lanyard:latest}
+    deploy:
+      restart_policy:
+        condition: on-failure
     ports:
       - 4001:4001
     environment:
-      BOT_TOKEN: <your_token>
+      BOT_TOKEN: ${BOT_TOKEN}
       REDIS_HOST: redis
+    networks:
+      - lanyard_net
+
+networks:
+  lanyard_net:
+    driver: overlay
+
+volumes:
+  lanyard-redis-data:
+    external: true

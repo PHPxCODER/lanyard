@@ -2,11 +2,9 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'phpxcoder/lanyardv2'
+        IMAGE_NAME = 'lanyard'
         IMAGE_TAG = "${env.BUILD_NUMBER}"
-        CONTAINER_NAME = 'lanyard'
-        REDIS_CONTAINER = 'lanyard_redis'
-        NETWORK_NAME = 'lanyard_net'
+        STACK_NAME = 'lanyard'
         DOCKER_BUILDKIT = '1'
     }
 
@@ -81,49 +79,6 @@ pipeline {
             }
         }
 
-        stage('Start Redis') {
-            steps {
-                script {
-                    withEnv(["REDIS_NET=${NETWORK_NAME}", "REDIS_CTR=${REDIS_CONTAINER}"]) {
-                        sh '''
-                            # Ensure network exists
-                            docker network inspect $REDIS_NET > /dev/null 2>&1 || \
-                                docker network create $REDIS_NET
-
-                            if ! docker ps --format '{{.Names}}' | grep -q "^${REDIS_CTR}$"; then
-                                echo "Starting Redis container..."
-
-                                docker rm -f $REDIS_CTR 2>/dev/null || true
-
-                                docker run -d \
-                                    --name $REDIS_CTR \
-                                    --restart unless-stopped \
-                                    --network $REDIS_NET \
-                                    -v lanyard-redis-data:/data \
-                                    redis:alpine
-
-                                echo "Waiting for Redis to be ready..."
-                                for i in $(seq 1 30); do
-                                    if docker exec $REDIS_CTR redis-cli ping 2>/dev/null | grep -q PONG; then
-                                        echo "Redis is ready"
-                                        break
-                                    fi
-                                    if [ $i -eq 30 ]; then
-                                        echo "ERROR: Redis did not become ready in time"
-                                        docker logs $REDIS_CTR 2>&1
-                                        exit 1
-                                    fi
-                                    sleep 2
-                                done
-                            else
-                                echo "Redis container already running, skipping start"
-                            fi
-                        '''
-                    }
-                }
-            }
-        }
-
         stage('Build Image') {
             steps {
                 script {
@@ -137,6 +92,9 @@ pipeline {
                             docker tag lanyard-lanyard:latest $BUILD_IMAGE_NAME:$BUILD_IMAGE_TAG
                             docker tag lanyard-lanyard:latest $BUILD_IMAGE_NAME:latest
 
+                            echo "Removing intermediate build image..."
+                            docker rmi lanyard-lanyard:latest 2>/dev/null || true
+
                             echo "Docker image built and tagged successfully: $BUILD_IMAGE_NAME:$BUILD_IMAGE_TAG"
                         '''
                     }
@@ -147,67 +105,21 @@ pipeline {
         stage('Deploy') {
             steps {
                 script {
-                    sh """
-                        echo "Checking for existing container..."
-
-                        if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}\$"; then
-                            echo "Found existing container ${CONTAINER_NAME}, removing it..."
-
-                            docker stop ${CONTAINER_NAME} || docker kill ${CONTAINER_NAME} || true
-                            sleep 2
-                            docker rm -f ${CONTAINER_NAME} || true
-                            sleep 1
-
-                            if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}\$"; then
-                                echo "ERROR: Container ${CONTAINER_NAME} still exists after removal attempt"
-                                docker ps -a | grep ${CONTAINER_NAME} || true
-                                exit 1
-                            fi
-
-                            echo "Container successfully removed"
-                        else
-                            echo "No existing container found, proceeding with fresh deployment"
-                        fi
-                    """
-
-                    withEnv(["BOT_CONTAINER=${CONTAINER_NAME}", "BOT_NETWORK=${NETWORK_NAME}", "BOT_IMAGE=${IMAGE_NAME}:${IMAGE_TAG}", "BOT_REDIS=${REDIS_CONTAINER}"]) {
+                    withEnv(["LANYARD_IMAGE=${IMAGE_NAME}:${IMAGE_TAG}", "STACK=${STACK_NAME}"]) {
                         withCredentials([
                             string(credentialsId: 'lanyard-bot-token', variable: 'BOT_TOKEN')
                         ]) {
                             sh '''
-                                echo "Starting new container..."
+                                echo "Initializing Docker Swarm (if not already active)..."
+                                docker swarm init 2>/dev/null || true
 
-                                if docker ps -a --format '{{.Names}}' | grep -q "^$BOT_CONTAINER$"; then
-                                    echo "ERROR: Container $BOT_CONTAINER still exists!"
-                                    exit 1
-                                fi
+                                echo "Deploying stack: $STACK..."
 
-                                docker run -d \
-                                    --name $BOT_CONTAINER \
-                                    --restart unless-stopped \
-                                    --network $BOT_NETWORK \
-                                    -p 4001:4001 \
-                                    -e BOT_TOKEN=$BOT_TOKEN \
-                                    -e REDIS_HOST=$BOT_REDIS \
-                                    $BOT_IMAGE
+                                LANYARD_IMAGE=$LANYARD_IMAGE BOT_TOKEN=$BOT_TOKEN \
+                                    docker compose -f docker-compose.yml config | \
+                                    docker stack deploy -c - --with-registry-auth $STACK
 
-                                if ! docker ps --format '{{.Names}}' | grep -q "^$BOT_CONTAINER$"; then
-                                    echo "ERROR: Container failed to start"
-                                    docker logs $BOT_CONTAINER 2>&1 || true
-                                    exit 1
-                                fi
-
-                                echo "Container started successfully: $BOT_CONTAINER"
-
-                                echo "Waiting for container to initialize..."
-                                sleep 5
-
-                                if ! docker ps --format '{{.Names}}' | grep -q "^$BOT_CONTAINER$"; then
-                                    echo "ERROR: Container started but immediately crashed"
-                                    echo "Container logs:"
-                                    docker logs $BOT_CONTAINER 2>&1
-                                    exit 1
-                                fi
+                                echo "Stack deployed successfully"
                             '''
                         }
                     }
@@ -218,37 +130,40 @@ pipeline {
         stage('Health Check') {
             steps {
                 script {
-                    sh """
-                        echo "Running health checks..."
-                        sleep 10
+                    withEnv(["STACK=${STACK_NAME}"]) {
+                        sh '''
+                            echo "Waiting for stack services to start..."
+                            sleep 10
 
-                        # Check container is still running
-                        if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}\$"; then
-                            echo "ERROR: Container is not running"
-                            docker logs ${CONTAINER_NAME} 2>&1 || true
-                            exit 1
-                        fi
-
-                        # Check bot connected to Discord gateway by looking for Heartbeat ACK in logs
-                        max_attempts=12
-                        attempt=0
-
-                        while [ \$attempt -lt \$max_attempts ]; do
-                            if docker logs ${CONTAINER_NAME} 2>&1 | grep -q "Heartbeat ACK"; then
-                                echo "Bot is online and connected to Discord!"
-                                docker ps | grep ${CONTAINER_NAME}
-                                exit 0
+                            # Check all stack services are running
+                            if ! docker stack services $STACK --format '{{.Name}}' | grep -q .; then
+                                echo "ERROR: No services found in stack $STACK"
+                                docker stack ps $STACK 2>&1 || true
+                                exit 1
                             fi
-                            attempt=\$((attempt + 1))
-                            echo "Attempt \$attempt/\$max_attempts: Bot not ready yet..."
-                            sleep 5
-                        done
 
-                        echo "Health check failed — bot did not connect to Discord"
-                        echo "Container logs:"
-                        docker logs ${CONTAINER_NAME} 2>&1
-                        exit 1
-                    """
+                            # Check bot connected to Discord by looking for Heartbeat ACK in logs
+                            LANYARD_SERVICE="${STACK}_lanyard"
+                            max_attempts=12
+                            attempt=0
+
+                            while [ $attempt -lt $max_attempts ]; do
+                                if docker service logs $LANYARD_SERVICE 2>&1 | grep -q "Heartbeat ACK"; then
+                                    echo "Bot is online and connected to Discord!"
+                                    docker stack services $STACK
+                                    exit 0
+                                fi
+                                attempt=$((attempt + 1))
+                                echo "Attempt $attempt/$max_attempts: Bot not ready yet..."
+                                sleep 5
+                            done
+
+                            echo "Health check failed — bot did not connect to Discord"
+                            echo "Service logs:"
+                            docker service logs $LANYARD_SERVICE 2>&1
+                            exit 1
+                        '''
+                    }
                 }
             }
         }
@@ -278,7 +193,7 @@ pipeline {
                 Deployment Successful!
                 ====================================
                 Image: ${IMAGE_NAME}:${IMAGE_TAG}
-                Container: ${CONTAINER_NAME}
+                Stack: ${STACK_NAME}
                 Build: #${env.BUILD_NUMBER}
                 Commit: ${env.GIT_COMMIT}
                 ====================================
@@ -297,12 +212,8 @@ pipeline {
                 """
 
                 sh """
-                    if docker ps -a | grep -q ${CONTAINER_NAME}; then
-                        echo "Container logs:"
-                        docker logs ${CONTAINER_NAME} 2>&1 || echo "Could not retrieve container logs"
-                    else
-                        echo "Container was not created"
-                    fi
+                    echo "Stack service logs:"
+                    docker service logs ${STACK_NAME}_lanyard 2>&1 || echo "Could not retrieve service logs"
                 """
             }
         }
