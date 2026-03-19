@@ -105,19 +105,15 @@ pipeline {
         stage('Deploy') {
             steps {
                 script {
-                    withEnv(["LANYARD_IMAGE=${IMAGE_NAME}:${IMAGE_TAG}", "STACK=${STACK_NAME}"]) {
+                    withEnv(["LANYARD_IMAGE=${IMAGE_NAME}:${IMAGE_TAG}", "COMPOSE_PROJECT_NAME=${STACK_NAME}"]) {
                         withCredentials([
                             string(credentialsId: 'lanyard-bot-token', variable: 'BOT_TOKEN')
                         ]) {
                             sh '''
-                                echo "Initializing Docker Swarm (if not already active)..."
-                                docker swarm init 2>/dev/null || true
-
-                                echo "Deploying stack: $STACK..."
+                                echo "Deploying stack: $COMPOSE_PROJECT_NAME..."
 
                                 LANYARD_IMAGE=$LANYARD_IMAGE BOT_TOKEN=$BOT_TOKEN \
-                                    docker compose -f docker-compose.yml config | \
-                                    docker stack deploy -c - --with-registry-auth $STACK
+                                    docker compose -f docker-compose.yml up -d --remove-orphans
 
                                 echo "Stack deployed successfully"
                             '''
@@ -130,27 +126,26 @@ pipeline {
         stage('Health Check') {
             steps {
                 script {
-                    withEnv(["STACK=${STACK_NAME}"]) {
+                    withEnv(["COMPOSE_PROJECT_NAME=${STACK_NAME}"]) {
                         sh '''
                             echo "Waiting for stack services to start..."
                             sleep 10
 
-                            # Check all stack services are running
-                            if ! docker stack services $STACK --format '{{.Name}}' | grep -q .; then
-                                echo "ERROR: No services found in stack $STACK"
-                                docker stack ps $STACK 2>&1 || true
+                            # Check lanyard container is running
+                            if ! docker compose -f docker-compose.yml ps --status running | grep -q lanyard; then
+                                echo "ERROR: Lanyard service is not running"
+                                docker compose -f docker-compose.yml logs lanyard 2>&1 || true
                                 exit 1
                             fi
 
                             # Check bot connected to Discord by looking for Heartbeat ACK in logs
-                            LANYARD_SERVICE="${STACK}_lanyard"
                             max_attempts=12
                             attempt=0
 
                             while [ $attempt -lt $max_attempts ]; do
-                                if docker service logs $LANYARD_SERVICE 2>&1 | grep -q "Heartbeat ACK"; then
+                                if docker compose -f docker-compose.yml logs lanyard 2>&1 | grep -q "Heartbeat ACK"; then
                                     echo "Bot is online and connected to Discord!"
-                                    docker stack services $STACK
+                                    docker compose -f docker-compose.yml ps
                                     exit 0
                                 fi
                                 attempt=$((attempt + 1))
@@ -160,7 +155,7 @@ pipeline {
 
                             echo "Health check failed — bot did not connect to Discord"
                             echo "Service logs:"
-                            docker service logs $LANYARD_SERVICE 2>&1
+                            docker compose -f docker-compose.yml logs lanyard 2>&1
                             exit 1
                         '''
                     }

@@ -1,9 +1,7 @@
 services:
   redis:
     image: redis:alpine
-    deploy:
-      restart_policy:
-        condition: on-failure
+    restart: always
     networks:
       - lanyard_net
     volumes:
@@ -11,9 +9,7 @@ services:
 
   lanyard:
     image: ${LANYARD_IMAGE:-lanyard:latest}
-    deploy:
-      restart_policy:
-        condition: on-failure
+    restart: always
     ports:
       - 4001:4001
     environment:
@@ -21,10 +17,12 @@ services:
       REDIS_HOST: redis
     networks:
       - lanyard_net
+    depends_on:
+      - redis
 
 networks:
   lanyard_net:
-    driver: overlay
+    driver: bridge
 
 volumes:
   lanyard-redis-data:
