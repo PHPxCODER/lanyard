@@ -1,0 +1,33 @@
+services:
+  redis:
+    image: redis
+    restart: always
+    container_name: lanyard_redis
+    networks:
+      - lanyard_net
+    volumes:
+      - lanyard-redis-data:/data
+
+  lanyard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    container_name: lanyard
+    depends_on:
+      - redis
+    ports:
+      - 4001:4001
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN}
+      REDIS_HOST: redis
+    networks:
+      - lanyard_net
+
+networks:
+  lanyard_net:
+    driver: bridge
+
+volumes:
+  lanyard-redis-data:
+    external: true
