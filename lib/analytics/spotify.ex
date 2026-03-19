@@ -16,6 +16,7 @@ defmodule Lanyard.Analytics.Spotify do
       _ ->
         :ets.insert(:analytics, {analytics_key, %{last_played: start_timestamp}})
         Redis.hincrby("lanyard_analytics:#{user_id}:spotify:track:#{track_id}", "plays", 1)
+        Redis.hincrby("lanyard_analytics:#{user_id}", "spotify_plays", 1)
 
         Redis.hset(
           "lanyard_analytics:#{user_id}:spotify:track:#{track_id}",
