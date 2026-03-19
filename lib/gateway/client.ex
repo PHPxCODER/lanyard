@@ -172,7 +172,16 @@ defmodule Lanyard.Gateway.Client do
   end
 
   def handle_event({:ready, payload}, state) do
-    new_state = Map.put(state, :session_id, payload.data[:session_id])
+    app_id = payload.data[:application][:id] |> Integer.to_string()
+
+    Task.start(fn ->
+      Lanyard.DiscordBot.SlashCommands.register_global(app_id)
+    end)
+
+    new_state =
+      state
+      |> Map.put(:session_id, payload.data[:session_id])
+      |> Map.put(:application_id, app_id)
 
     {:ok, new_state}
   end
@@ -180,6 +189,14 @@ defmodule Lanyard.Gateway.Client do
   def handle_event({:message_create, payload}, state) do
     Task.start(fn ->
       Lanyard.DiscordBot.CommandHandler.handle_message(payload)
+    end)
+
+    {:ok, state}
+  end
+
+  def handle_event({:interaction_create, payload}, state) do
+    Task.start(fn ->
+      Lanyard.DiscordBot.InteractionHandler.handle_interaction(payload.data)
     end)
 
     {:ok, state}
