@@ -14,8 +14,22 @@ defmodule Lanyard.DiscordBot.Commands.Del do
 
       {false} ->
         Lanyard.KV.Interface.del(payload["author"]["id"], key)
-
         DiscordApi.send_message(payload["channel_id"], "<a:tickmark_cym:1000427958168719390> Deleted Key: `#{key}`")
+    end
+  end
+
+  # Catch mention-style usage and redirect to slash command
+  def handle([mention, _key], payload) when is_binary(mention) do
+    if String.starts_with?(mention, "<@") or String.starts_with?(mention, "@") do
+      DiscordApi.send_message(
+        payload["channel_id"],
+        "<a:crossmark_cym:870973061376143431> Prefix commands only work for your own KV. Use `/del` with the `user` option to manage KV for other users."
+      )
+    else
+      DiscordApi.send_message(
+        payload["channel_id"],
+        "<a:crossmark_cym:870973061376143431> Invalid Usage. Example `del` Command Usage:\n`#{Application.get_env(:lanyard, :command_prefix)}del <key>`"
+      )
     end
   end
 
@@ -32,7 +46,7 @@ defmodule Lanyard.DiscordBot.Commands.Del do
       [{false}] ->
         DiscordApi.send_message(
           payload["channel_id"],
-          "<a:crossmark_cym:870973061376143431> Invalid Usage. Example `del` Command Usage:\n#{Application.get_env(:lanyard, :command_prefix)}del <key>`"
+          "<a:crossmark_cym:870973061376143431> Invalid Usage. Example `del` Command Usage:\n`#{Application.get_env(:lanyard, :command_prefix)}del <key>`"
         )
 
       _ ->
