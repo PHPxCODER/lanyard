@@ -6,19 +6,16 @@ ENV MIX_ENV=prod
 
 WORKDIR /app
 
-# get deps first so we have a cache
-ADD mix.exs mix.lock /app/
-RUN \
-	cd /app && \
-	mix local.hex --force && \
-	mix local.rebar --force && \
-	mix deps.get
+# Install hex and rebar in a separate layer so they are cached independently
+RUN mix local.hex --force && mix local.rebar --force
 
-# then make a release build
-ADD . /app/
-RUN \
-	mix compile && \
-	mix release
+# Copy only dependency manifests first to cache deps layer
+COPY mix.exs mix.lock ./
+RUN mix deps.get
+
+# Copy the rest of the source and compile
+COPY . .
+RUN mix compile && mix release
 
 FROM elixir:1.14-alpine
 

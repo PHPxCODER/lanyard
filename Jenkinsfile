@@ -129,9 +129,6 @@ pipeline {
                 script {
                     withEnv(["BUILD_IMAGE_NAME=${IMAGE_NAME}", "BUILD_IMAGE_TAG=${IMAGE_TAG}", "COMPOSE_PROJECT_NAME=lanyard"]) {
                         sh '''
-                            echo "Pulling latest image for cache..."
-                            docker pull $BUILD_IMAGE_NAME:latest || true
-
                             echo "Building Docker image via docker-compose.dev.yml..."
 
                             DOCKER_BUILDKIT=1 docker compose -f docker-compose.dev.yml build lanyard
