@@ -28,6 +28,7 @@ defmodule Lanyard.DiscordBot.InteractionHandler do
       "del" -> handle_del(user_id, options, is_admin, data)
       "apikey" -> handle_apikey(user_id, data)
       "stats" -> handle_stats(user_id, data)
+      "help" -> handle_help(data)
       _ -> :ok
     end
   end
@@ -139,6 +140,33 @@ defmodule Lanyard.DiscordBot.InteractionHandler do
     target_id = resolve_target(user_id, options, is_admin)
     KV.del(target_id, key)
     respond(data, "<a:tickmark_cym:1000427958168719390> Deleted key `#{key}`.")
+  end
+
+  defp handle_help(data) do
+    components = [
+      %{
+        type: 17,
+        components: [
+          %{type: 10, content: "## Lanyard Commands"},
+          %{type: 14, divider: true, spacing: 1},
+          %{type: 10, content: "**`/kv`**\nList all your KV keys."},
+          %{type: 10, content: "**`/get` `key`**\nGet the value of a KV key."},
+          %{type: 10, content: "**`/set`**\nSet a KV key via a form popup."},
+          %{type: 10, content: "**`/del` `key`**\nDelete a KV key."},
+          %{type: 10, content: "**`/apikey`**\nRetrieve your Lanyard API key (ephemeral)."},
+          %{type: 10, content: "**`/stats`**\nView your presence update and Spotify play counts."},
+          %{type: 14, divider: true, spacing: 1},
+          %{type: 10, content: "-# Admin-only commands accept an optional `user` parameter to manage another user's data."}
+        ]
+      }
+    ]
+
+    DiscordApi.respond_with_components(
+      Integer.to_string(data["id"]),
+      data["token"],
+      components,
+      true
+    )
   end
 
   defp handle_apikey(user_id, data) do

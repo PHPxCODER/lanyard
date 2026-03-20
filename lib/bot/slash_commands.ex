@@ -30,7 +30,8 @@ defmodule Lanyard.DiscordBot.SlashCommands do
       ]
     },
     %{name: "apikey", description: "Get your Lanyard API key (use in DMs)", type: 1},
-    %{name: "stats", description: "View your Lanyard presence stats", type: 1}
+    %{name: "stats", description: "View your Lanyard presence stats", type: 1},
+    %{name: "help", description: "List all available Lanyard commands", type: 1}
   ]
 
   @doc "Registers all slash commands globally (works in guilds + DMs, up to 1h to propagate)."
