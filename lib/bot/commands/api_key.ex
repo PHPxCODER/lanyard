@@ -57,12 +57,17 @@ defmodule Lanyard.DiscordBot.Commands.ApiKey do
     Redis.set("api_key:#{key}", user_id)
     Redis.set("user_api_key:#{user_id}", key)
 
-    {:ok, dm_channel} = DiscordApi.create_dm(user_id)
+    case DiscordApi.create_dm(user_id) do
+      {:ok, dm_channel} ->
+        DiscordApi.send_message(
+          dm_channel,
+          "<a:tickmark_cym:1000427958168719390> **We've Regenerated Your API Key As You Used It in a K/V Command.**\nYour New Lanyard API Key is `#{key}`\n\n**ABSOLUTELY DO NOT SHARE OR POST THIS KEY ANYWHERE IT WILL ALLOW ANYONE TO MANAGE YOUR LANYARD K/V**\n<:verified_cym:1000433632692940820> *Run `.apikey` in This DM If You Need To Re-Generate Your Key*"
+        )
 
-    DiscordApi.send_message(
-      dm_channel,
-      "<a:tickmark_cym:1000427958168719390> **We've Regenerated Your API Key As You Used It in a K/V Command.**\nYour New Lanyard API Key is `#{key}`\n\n**ABSOLUTELY DO NOT SHARE OR POST THIS KEY ANYWHERE IT WILL ALLOW ANYONE TO MANAGE YOUR LANYARD K/V**\n<:verified_cym:1000433632692940820> *Run `.apikey` in This DM If You Need To Re-Generate Your Key*"
-    )
+      {:error, reason} ->
+        require Logger
+        Logger.warning("Failed to create DM channel for user #{user_id}: #{inspect(reason)}")
+    end
   end
 
   def generate_api_key() do
