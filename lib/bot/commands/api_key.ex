@@ -57,7 +57,7 @@ defmodule Lanyard.DiscordBot.Commands.ApiKey do
     Redis.set("api_key:#{key}", user_id)
     Redis.set("user_api_key:#{user_id}", key)
 
-    dm_channel = DiscordApi.create_dm(user_id)
+    {:ok, dm_channel} = DiscordApi.create_dm(user_id)
 
     DiscordApi.send_message(
       dm_channel,

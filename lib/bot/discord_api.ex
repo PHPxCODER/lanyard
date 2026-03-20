@@ -63,10 +63,10 @@ defmodule Lanyard.DiscordBot.DiscordApi do
 
     case Poison.decode!(response.body) do
       %{"id" => id} ->
-        id
+        {:ok, id}
 
       _ ->
-        :ok
+        {:error, :missing_id}
     end
   end
 end
