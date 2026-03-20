@@ -38,14 +38,25 @@ defmodule Lanyard.DiscordBot.InteractionHandler do
 
     case custom_id do
       "set_kv:" <> target_id ->
-        components = get_in(data, ["data", "components"]) || []
-        values = parse_modal_components(components)
-        key = Map.get(values, "key")
-        value = Map.get(values, "value")
+        user_id = get_user_id(data)
+        is_admin = admin?(data)
 
-        case KV.set(target_id, key, value) do
-          {:ok, _} -> respond(data, "<a:tickmark_cym:1000427958168719390> `#{key}` was set.", ephemeral: true)
-          {:error, reason} -> respond(data, ":x: #{reason}", ephemeral: true)
+        if target_id != user_id and not is_admin do
+          respond(data, ":x: You are not authorized to set KV for another user.", ephemeral: true)
+        else
+          components = get_in(data, ["data", "components"]) || []
+          values = parse_modal_components(components)
+          key = Map.get(values, "key")
+          value = Map.get(values, "value")
+
+          if is_binary(key) and is_binary(value) do
+            case KV.set(target_id, key, value) do
+              {:ok, _} -> respond(data, "<a:tickmark_cym:1000427958168719390> `#{key}` was set.", ephemeral: true)
+              {:error, reason} -> respond(data, ":x: #{reason}", ephemeral: true)
+            end
+          else
+            respond(data, ":x: Invalid key or value.", ephemeral: true)
+          end
         end
 
       _ ->
@@ -119,7 +130,7 @@ defmodule Lanyard.DiscordBot.InteractionHandler do
                 style: 2,
                 required: true,
                 min_length: 1,
-                max_length: 3000,
+                max_length: 4000,
                 placeholder: "Enter value"
               }
             ]
