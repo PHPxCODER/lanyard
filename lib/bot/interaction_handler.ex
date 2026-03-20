@@ -50,10 +50,7 @@ defmodule Lanyard.DiscordBot.InteractionHandler do
           value = Map.get(values, "value")
 
           if is_binary(key) and is_binary(value) do
-            case KV.set(target_id, key, value) do
-              {:ok, _} -> respond(data, "<a:tickmark_cym:1000427958168719390> `#{key}` was set.", ephemeral: true)
-              {:error, reason} -> respond(data, ":x: #{reason}", ephemeral: true)
-            end
+            set_and_respond(target_id, key, value, data)
           else
             respond(data, ":x: Invalid key or value.", ephemeral: true)
           end
@@ -96,10 +93,7 @@ defmodule Lanyard.DiscordBot.InteractionHandler do
       key = options["key"]
       value = options["value"]
 
-      case KV.set(target_id, key, value) do
-        {:ok, _} -> respond(data, "<a:tickmark_cym:1000427958168719390> `#{key}` was set.", ephemeral: true)
-        {:error, reason} -> respond(data, ":x: #{reason}", ephemeral: true)
-      end
+      set_and_respond(target_id, key, value, data)
     else
       modal = %{
         title: "Set KV Value",
@@ -212,6 +206,13 @@ defmodule Lanyard.DiscordBot.InteractionHandler do
       components,
       true
     )
+  end
+
+  defp set_and_respond(target_id, key, value, data) do
+    case KV.set(target_id, key, value) do
+      {:ok, _} -> respond(data, "<a:tickmark_cym:1000427958168719390> `#{key}` was set.", ephemeral: true)
+      {:error, reason} -> respond(data, ":x: #{reason}", ephemeral: true)
+    end
   end
 
   defp resolve_target(user_id, options, is_admin) do
