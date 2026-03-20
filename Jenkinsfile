@@ -112,8 +112,10 @@ pipeline {
                             sh '''
                                 echo "Deploying stack: $COMPOSE_PROJECT_NAME..."
 
+                                docker compose -f docker-compose.yml down --remove-orphans 2>/dev/null || true
+
                                 LANYARD_IMAGE=$LANYARD_IMAGE BOT_TOKEN=$BOT_TOKEN \
-                                    docker compose -f docker-compose.yml up -d --remove-orphans
+                                    docker compose -f docker-compose.yml up -d
 
                                 echo "Stack deployed successfully"
                             '''

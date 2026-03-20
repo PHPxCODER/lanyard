@@ -33,7 +33,7 @@ defmodule Lanyard.Gateway.Client do
     :crypto.start()
     :ssl.start()
 
-    :websocket_client.start_link("wss://gateway.discord.gg/?v=9&encoding=etf", __MODULE__, [state])
+    :websocket_client.start_link("wss://gateway.discord.gg/?v=10&encoding=etf", __MODULE__, [state])
   end
 
   def init([state]) do
@@ -288,11 +288,9 @@ defmodule Lanyard.Gateway.Client do
     data = %{
       "token" => state.token,
       "properties" => %{
-        "$os" => "erlang-vm",
-        "$browser" => "lanyard-worker",
-        "$device" => "lanyard-genserver",
-        "$referrer" => "",
-        "$referring_domain" => ""
+        "os" => "erlang-vm",
+        "browser" => "lanyard-worker",
+        "device" => "lanyard-genserver"
       },
       "presence" => %{
         "since" => nil,

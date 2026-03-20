@@ -1,5 +1,5 @@
 defmodule Lanyard.DiscordBot.DiscordApi do
-  @api_host "https://discord.com/api/v9"
+  @api_host "https://discord.com/api/v10"
 
   def send_message(channel_id, content) when is_binary(content) do
     Lanyard.Metrics.Collector.inc(:counter, :lanyard_discord_messages_sent)
@@ -50,6 +50,25 @@ defmodule Lanyard.DiscordBot.DiscordApi do
     )
   end
 
+  def respond_with_modal(interaction_id, interaction_token, modal) do
+    HTTPoison.post(
+      "#{@api_host}/interactions/#{interaction_id}/#{interaction_token}/callback",
+      Poison.encode!(%{type: 9, data: modal}),
+      [{"Content-Type", "application/json"}]
+    )
+  end
+
+  def respond_with_components(interaction_id, interaction_token, components, ephemeral \\ false) do
+    # 32768 = IS_COMPONENTS_V2 flag (1 <<< 15); combined with ephemeral (64) = 32832
+    flags = if ephemeral, do: 32832, else: 32768
+
+    HTTPoison.post(
+      "#{@api_host}/interactions/#{interaction_id}/#{interaction_token}/callback",
+      Poison.encode!(%{type: 4, data: %{flags: flags, components: components}}),
+      [{"Content-Type", "application/json"}]
+    )
+  end
+
   def create_dm(recipient) do
     {:ok, response} =
       HTTPoison.post(
@@ -63,10 +82,10 @@ defmodule Lanyard.DiscordBot.DiscordApi do
 
     case Poison.decode!(response.body) do
       %{"id" => id} ->
-        id
+        {:ok, id}
 
       _ ->
-        :ok
+        {:error, :missing_id}
     end
   end
 end

@@ -17,8 +17,6 @@ defmodule Lanyard.DiscordBot.SlashCommands do
       description: "Set a KV value",
       type: 1,
       options: [
-        %{name: "key", description: "The KV key", type: 3, required: true},
-        %{name: "value", description: "The value to set", type: 3, required: true},
         %{name: "user", description: "Target user (admins only)", type: 6, required: false}
       ]
     },
@@ -32,7 +30,8 @@ defmodule Lanyard.DiscordBot.SlashCommands do
       ]
     },
     %{name: "apikey", description: "Get your Lanyard API key (use in DMs)", type: 1},
-    %{name: "stats", description: "View your Lanyard presence stats", type: 1}
+    %{name: "stats", description: "View your Lanyard presence stats", type: 1},
+    %{name: "help", description: "List all available Lanyard commands", type: 1}
   ]
 
   @doc "Registers all slash commands globally (works in guilds + DMs, up to 1h to propagate)."
