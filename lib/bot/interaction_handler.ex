@@ -79,48 +79,59 @@ defmodule Lanyard.DiscordBot.InteractionHandler do
   defp handle_set(user_id, options, is_admin, data) do
     target_id = resolve_target(user_id, options, is_admin)
 
-    modal = %{
-      title: "Set KV Value",
-      custom_id: "set_kv:#{target_id}",
-      components: [
-        %{
-          type: 1,
-          components: [
-            %{
-              type: 4,
-              custom_id: "key",
-              label: "Key",
-              style: 1,
-              required: true,
-              min_length: 1,
-              max_length: 255,
-              placeholder: "e.g. spotify_url"
-            }
-          ]
-        },
-        %{
-          type: 1,
-          components: [
-            %{
-              type: 4,
-              custom_id: "value",
-              label: "Value",
-              style: 2,
-              required: true,
-              min_length: 1,
-              max_length: 3000,
-              placeholder: "Enter value"
-            }
-          ]
-        }
-      ]
-    }
+    # If key+value already provided (old cached command), skip the modal
+    if Map.has_key?(options, "key") and Map.has_key?(options, "value") do
+      key = options["key"]
+      value = options["value"]
 
-    DiscordApi.respond_with_modal(
-      Integer.to_string(data["id"]),
-      data["token"],
-      modal
-    )
+      case KV.set(target_id, key, value) do
+        {:ok, _} -> respond(data, "<a:tickmark_cym:1000427958168719390> `#{key}` was set.", ephemeral: true)
+        {:error, reason} -> respond(data, ":x: #{reason}", ephemeral: true)
+      end
+    else
+      modal = %{
+        title: "Set KV Value",
+        custom_id: "set_kv:#{target_id}",
+        components: [
+          %{
+            type: 1,
+            components: [
+              %{
+                type: 4,
+                custom_id: "key",
+                label: "Key",
+                style: 1,
+                required: true,
+                min_length: 1,
+                max_length: 255,
+                placeholder: "e.g. spotify_url"
+              }
+            ]
+          },
+          %{
+            type: 1,
+            components: [
+              %{
+                type: 4,
+                custom_id: "value",
+                label: "Value",
+                style: 2,
+                required: true,
+                min_length: 1,
+                max_length: 3000,
+                placeholder: "Enter value"
+              }
+            ]
+          }
+        ]
+      }
+
+      DiscordApi.respond_with_modal(
+        Integer.to_string(data["id"]),
+        data["token"],
+        modal
+      )
+    end
   end
 
   defp handle_del(user_id, options, is_admin, data) do
