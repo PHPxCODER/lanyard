@@ -17,8 +17,6 @@ defmodule Lanyard.DiscordBot.SlashCommands do
       description: "Set a KV value",
       type: 1,
       options: [
-        %{name: "key", description: "The KV key", type: 3, required: true},
-        %{name: "value", description: "The value to set", type: 3, required: true},
         %{name: "user", description: "Target user (admins only)", type: 6, required: false}
       ]
     },
