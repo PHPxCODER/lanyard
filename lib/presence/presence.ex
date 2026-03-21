@@ -147,7 +147,7 @@ defmodule Lanyard.Presence do
         {:ok, GenServer.call(pid, {:get_raw_data})}
 
       {:error, _reason} ->
-        {:error, :user_not_monitored, "User is Not Being Monitored by Lanyard. Join Discord Server at api.codevizag.com/discord"}
+        {:error, :user_not_monitored, "User is Not Being Monitored by Lanyard. Join Discord Server at #{Application.get_env(:lanyard, :discord_invite_url)}"}
     end
   end
 

@@ -9,5 +9,7 @@ if config_env() == :prod do
     bot_presence_type: String.to_integer(System.get_env("BOT_PRESENCE_TYPE") || "3"),
     bot_token: System.get_env("BOT_TOKEN"),
     redis_uri:
-      System.get_env("REDIS_DSN") || System.get_env("REDIS_URI") || System.get_env("REDIS_URL")
+      System.get_env("REDIS_DSN") || System.get_env("REDIS_URI") || System.get_env("REDIS_URL"),
+    api_base_url: System.get_env("API_BASE_URL") || "http://localhost:4001",
+    discord_invite_url: System.get_env("DISCORD_INVITE_URL") || "https://discord.gg/lanyard"
 end
