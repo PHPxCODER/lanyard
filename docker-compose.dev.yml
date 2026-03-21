@@ -21,6 +21,8 @@ services:
     environment:
       BOT_TOKEN: ${BOT_TOKEN}
       REDIS_HOST: redis
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:4001}
+      DISCORD_INVITE_URL: ${DISCORD_INVITE_URL:-https://discord.gg/lanyard}
     networks:
       - lanyard_net
 

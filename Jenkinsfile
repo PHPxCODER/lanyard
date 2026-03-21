@@ -55,7 +55,9 @@ pipeline {
                 script {
                     def missing = []
                     def requiredCreds = [
-                        'lanyard-bot-token'
+                        'lanyard-bot-token',
+                        'lanyard-api-base-url',
+                        'lanyard-discord-invite-url'
                     ]
 
                     for (credId in requiredCreds) {
@@ -107,7 +109,9 @@ pipeline {
                 script {
                     withEnv(["LANYARD_IMAGE=${IMAGE_NAME}:${IMAGE_TAG}", "COMPOSE_PROJECT_NAME=${STACK_NAME}"]) {
                         withCredentials([
-                            string(credentialsId: 'lanyard-bot-token', variable: 'BOT_TOKEN')
+                            string(credentialsId: 'lanyard-bot-token', variable: 'BOT_TOKEN'),
+                            string(credentialsId: 'lanyard-api-base-url', variable: 'API_BASE_URL'),
+                            string(credentialsId: 'lanyard-discord-invite-url', variable: 'DISCORD_INVITE_URL')
                         ]) {
                             sh '''
                                 echo "Deploying stack: $COMPOSE_PROJECT_NAME..."
@@ -115,6 +119,7 @@ pipeline {
                                 docker compose -f docker-compose.yml down --remove-orphans 2>/dev/null || true
 
                                 LANYARD_IMAGE=$LANYARD_IMAGE BOT_TOKEN=$BOT_TOKEN \
+                                    API_BASE_URL=$API_BASE_URL DISCORD_INVITE_URL=$DISCORD_INVITE_URL \
                                     docker compose -f docker-compose.yml up -d
 
                                 echo "Stack deployed successfully"
