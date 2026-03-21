@@ -162,12 +162,10 @@ defmodule Lanyard.Gateway.Client do
     Lanyard.Metrics.Collector.set(:gauge, :lanyard_monitored_users, 0)
 
     Logger.info("Websocket closed in state #{inspect(state)} with reason #{inspect(reason)}")
-    Logger.info("Killing seq_num process!")
-    Process.exit(state[:agent_seq_num], :kill)
-    Logger.info("Killing rest_client process!")
-    Process.exit(state[:rest_client], :kill)
-    Logger.info("Killing heartbeat process!")
-    Process.exit(state[:heartbeat_pid], :kill)
+
+    if state[:agent_seq_num], do: Process.exit(state[:agent_seq_num], :kill)
+    if state[:heartbeat_pid], do: Process.exit(state[:heartbeat_pid], :kill)
+
     :ok
   end
 
