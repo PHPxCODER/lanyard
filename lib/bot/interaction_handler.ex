@@ -1,12 +1,8 @@
 defmodule Lanyard.DiscordBot.InteractionHandler do
-  import Bitwise
-
   alias Lanyard.DiscordBot.DiscordApi
+  alias Lanyard.DiscordBot.Permissions
   alias Lanyard.KV.Interface, as: KV
   alias Lanyard.Connectivity.Redis
-
-  @administrator 0x8
-  @manage_guild 0x20
 
   def handle_interaction(data) do
     case data["type"] do
@@ -258,19 +254,7 @@ defmodule Lanyard.DiscordBot.InteractionHandler do
     end)
   end
 
-  defp admin?(data) do
-    case get_in(data, ["member", "permissions"]) do
-      perms when is_binary(perms) ->
-        perm_int = String.to_integer(perms)
-        (perm_int &&& @administrator) != 0 or (perm_int &&& @manage_guild) != 0
-
-      perms when is_integer(perms) ->
-        (perms &&& @administrator) != 0 or (perms &&& @manage_guild) != 0
-
-      _ ->
-        false
-    end
-  end
+  defp admin?(data), do: Permissions.admin?(data)
 
   defp get_or_generate_key(user_id) do
     case Redis.get("user_api_key:#{user_id}") do
