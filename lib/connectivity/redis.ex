@@ -16,6 +16,11 @@ defmodule Lanyard.Connectivity.Redis do
     {:ok, %{client: client}}
   end
 
+  def handle_call(:ping, _from, state) do
+    result = Redix.command(state.client, ["PING"])
+    {:reply, result, state}
+  end
+
   def handle_call({:hgetall, key}, _from, state) do
     value = Redix.command(state[:client], ["HGETALL", key])
 
@@ -62,6 +67,13 @@ defmodule Lanyard.Connectivity.Redis do
     Redix.command(state.client, ["HDEL", key, field])
 
     {:noreply, state}
+  end
+
+  def ping do
+    case GenServer.call(:local_redis_client, :ping, 5000) do
+      {:ok, "PONG"} -> :ok
+      _ -> :error
+    end
   end
 
   def set(key, value) do

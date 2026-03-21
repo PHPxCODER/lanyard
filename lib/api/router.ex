@@ -40,6 +40,22 @@ defmodule Lanyard.Api.Router do
     conn
   end
 
+  get "/health" do
+    redis = Lanyard.Connectivity.Redis.ping()
+    gateway = if Process.whereis(:discord_bot), do: :ok, else: :error
+
+    status = if redis == :ok and gateway == :ok, do: :ok, else: :error
+    http_status = if status == :ok, do: 200, else: 503
+
+    conn
+    |> put_resp_content_type("application/json")
+    |> send_resp(http_status, Jason.encode!(%{
+      status: status,
+      redis: redis,
+      gateway: gateway
+    }))
+  end
+
   get "/" do
     response = %{
       info:
