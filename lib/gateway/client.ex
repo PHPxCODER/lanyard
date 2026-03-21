@@ -201,6 +201,16 @@ defmodule Lanyard.Gateway.Client do
   end
 
   def handle_event({:guild_create, payload}, state) do
+    # Clear any stale guild-specific commands so only global commands show
+    if state[:application_id] do
+      guild_id = Integer.to_string(payload.data.id)
+      app_id = state[:application_id]
+
+      Task.start(fn ->
+        Lanyard.DiscordBot.SlashCommands.clear_guild_commands(app_id, guild_id)
+      end)
+    end
+
     create_member_presences(payload)
 
     # The Lanyard guild is above the large_threshold, so we need to use Opcode 8: Request Guild Members

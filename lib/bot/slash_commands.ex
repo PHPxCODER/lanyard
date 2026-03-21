@@ -43,4 +43,9 @@ defmodule Lanyard.DiscordBot.SlashCommands do
   def register(app_id, guild_id) do
     DiscordApi.register_slash_commands(app_id, guild_id, @commands)
   end
+
+  @doc "Clears all guild-specific slash commands, deferring to global commands."
+  def clear_guild_commands(app_id, guild_id) do
+    DiscordApi.register_slash_commands(app_id, guild_id, [])
+  end
 end
