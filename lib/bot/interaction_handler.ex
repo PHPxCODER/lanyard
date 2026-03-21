@@ -73,17 +73,25 @@ defmodule Lanyard.DiscordBot.InteractionHandler do
 
   defp handle_get(user_id, options, is_admin, data) do
     key = options["key"]
-    target_id = resolve_target(user_id, options, is_admin)
 
-    case KV.get(target_id, key) do
-      {:ok, v} -> respond(data, "Key `#{key}`: ```#{String.replace(v, "`", "`\u200b")}```")
-      {:error, msg} -> respond(data, msg)
+    case resolve_target(user_id, options, is_admin) do
+      {:ok, target_id} ->
+        case KV.get(target_id, key) do
+          {:ok, v} -> respond(data, "Key `#{key}`: ```#{String.replace(v, "`", "`\u200b")}```")
+          {:error, msg} -> respond(data, msg)
+        end
+
+      {:error, :no_permission} ->
+        respond(data, ":x: You do not have permission to access another user's KV.", ephemeral: true)
     end
   end
 
   defp handle_set(user_id, options, is_admin, data) do
-    target_id = resolve_target(user_id, options, is_admin)
+    case resolve_target(user_id, options, is_admin) do
+      {:error, :no_permission} ->
+        respond(data, ":x: You do not have permission to modify another user's KV.", ephemeral: true)
 
+      {:ok, target_id} ->
     # If key+value already provided (old cached command), skip the modal
     if Map.has_key?(options, "key") and Map.has_key?(options, "value") do
       key = options["key"]
@@ -134,13 +142,20 @@ defmodule Lanyard.DiscordBot.InteractionHandler do
         modal
       )
     end
+    end
   end
 
   defp handle_del(user_id, options, is_admin, data) do
     key = options["key"]
-    target_id = resolve_target(user_id, options, is_admin)
-    KV.del(target_id, key)
-    respond(data, "<a:tickmark_cym:1000427958168719390> Deleted key `#{key}`.")
+
+    case resolve_target(user_id, options, is_admin) do
+      {:ok, target_id} ->
+        KV.del(target_id, key)
+        respond(data, "<a:tickmark_cym:1000427958168719390> Deleted key `#{key}`.", ephemeral: true)
+
+      {:error, :no_permission} ->
+        respond(data, ":x: You do not have permission to delete another user's KV.", ephemeral: true)
+    end
   end
 
   defp handle_help(data) do
@@ -212,7 +227,13 @@ defmodule Lanyard.DiscordBot.InteractionHandler do
   end
 
   defp resolve_target(user_id, options, is_admin) do
-    if is_admin, do: Map.get(options, "user", user_id), else: user_id
+    requested = Map.get(options, "user")
+
+    cond do
+      is_nil(requested) or requested == user_id -> {:ok, user_id}
+      is_admin -> {:ok, requested}
+      true -> {:error, :no_permission}
+    end
   end
 
   defp respond(data, content, opts \\ []) do
