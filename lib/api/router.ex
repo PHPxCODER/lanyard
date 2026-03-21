@@ -61,7 +61,7 @@ defmodule Lanyard.Api.Router do
       info:
         "Lanyard Provides Discord Presences as an API and WebSocket. Find out more here: https://github.com/phpxcoder/lanyard",
       monitored_user_count: GenRegistry.count(Lanyard.Presence),
-      discord_invite: Application.get_env(:lanyard, :discord_invite_url)
+      discord_invite: "#{Application.get_env(:lanyard, :api_base_url)}/discord"
     }
 
     Util.respond(conn, {:ok, response})

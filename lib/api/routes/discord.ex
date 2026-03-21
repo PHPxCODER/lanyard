@@ -7,6 +7,6 @@ defmodule Lanyard.Api.Routes.Discord do
 
   get "/" do
     # Discord invite URL
-    Util.redirect(conn, "https://discord.gg/GNPydYVRgP")
+    Util.redirect(conn, Application.get_env(:lanyard, :discord_invite_url))
   end
 end
