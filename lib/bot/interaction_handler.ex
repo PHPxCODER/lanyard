@@ -169,7 +169,7 @@ defmodule Lanyard.DiscordBot.InteractionHandler do
           %{type: 10, content: "**`/get` `key`**\nGet the value of a KV key."},
           %{type: 10, content: "**`/set`**\nSet a KV key via a form popup."},
           %{type: 10, content: "**`/del` `key`**\nDelete a KV key."},
-          %{type: 10, content: "**`/apikey`**\nRetrieve your Lanyard API key (ephemeral)."},
+          %{type: 10, content: "**`/apikey`**\nRotate and retrieve your Lanyard API key (ephemeral)."},
           %{type: 10, content: "**`/stats`**\nView your presence update and Spotify play counts."},
           %{type: 14, divider: true, spacing: 1},
           %{type: 10, content: "-# Admin-only commands accept an optional `user` parameter to manage another user's data."}
@@ -186,8 +186,8 @@ defmodule Lanyard.DiscordBot.InteractionHandler do
   end
 
   defp handle_apikey(user_id, data) do
-    key = get_or_generate_key(user_id)
-    respond(data, "Your Lanyard API key (only you can see this):\n||#{key}||", ephemeral: true)
+    key = rotate_api_key(user_id)
+    respond(data, "Your Lanyard API key has been regenerated (only you can see this):\n||#{key}||", ephemeral: true)
   end
 
   defp handle_stats(user_id, data) do
@@ -277,16 +277,16 @@ defmodule Lanyard.DiscordBot.InteractionHandler do
 
   defp admin?(data), do: Permissions.admin?(data)
 
-  defp get_or_generate_key(user_id) do
-    case Redis.get("user_api_key:#{user_id}") do
-      nil ->
-        key = Lanyard.DiscordBot.Commands.ApiKey.generate_api_key()
-        Redis.set("user_api_key:#{user_id}", key)
-        Redis.set("api_key:#{key}", user_id)
-        key
+  defp rotate_api_key(user_id) do
+    key = Lanyard.DiscordBot.Commands.ApiKey.generate_api_key()
 
-      existing ->
-        existing
+    case Redis.get("user_api_key:#{user_id}") do
+      nil -> :ok
+      old_key -> Redis.del("api_key:#{old_key}")
     end
+
+    Redis.set("user_api_key:#{user_id}", key)
+    Redis.set("api_key:#{key}", user_id)
+    key
   end
 end
