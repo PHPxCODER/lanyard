@@ -24,7 +24,7 @@ defmodule Lanyard.Metrics.Exporter do
   end
 
   def scrape_data(conn) do
-    [accept] = Plug.Conn.get_req_header(conn, "accept")
+    accept = Plug.Conn.get_req_header(conn, "accept") |> List.first() || "*/*"
 
     format =
       :accept_header.negotiate(
