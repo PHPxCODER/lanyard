@@ -28,7 +28,7 @@ defmodule Lanyard.DiscordBot do
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, reason}, state) do
-    Logger.warn("Discord Bot Crashed With Reason: #{reason}. Restarting.")
+    Logger.warning("Discord Bot Crashed With Reason: #{reason}. Restarting.")
 
     {:noreply, state, {:continue, :setup_bot}}
   end

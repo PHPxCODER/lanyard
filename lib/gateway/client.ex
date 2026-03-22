@@ -108,7 +108,7 @@ defmodule Lanyard.Gateway.Client do
   end
 
   defp _handle_data(%{op: :reconnect} = _data, state) do
-    Logger.warn("Discord enforced Reconnect")
+    Logger.warning("Discord enforced Reconnect")
     # Discord enforces reconnection. Websocket should be
     # reconnected and resume opcode sent to playback missed messages.
     # For now just kill the connection so that a supervisor can restart us.
@@ -116,7 +116,7 @@ defmodule Lanyard.Gateway.Client do
   end
 
   defp _handle_data(%{op: :invalid_session} = _data, state) do
-    Logger.warn("Discord: Invalid session")
+    Logger.warning("Discord: Invalid session")
     # On resume Discord will send invalid_session if our session id is too old
     # to be resumed.
     # For now just kill the connection so that a supervisor can restart us.
