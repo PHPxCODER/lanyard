@@ -310,7 +310,7 @@ defmodule Lanyard.Gateway.Client do
       },
       "compress" => false,
       "large_threshold" => 250,
-      "intents" => 4867
+      "intents" => 37635
     }
 
     payload = payload_build(opcode(opcodes(), :identify), data)
