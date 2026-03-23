@@ -19,8 +19,9 @@ RUN mix compile && mix release
 
 FROM elixir:1.19-alpine
 
-RUN apk add redis
+RUN apk add redis tini
 
 COPY --from=build /app/_build/prod/rel/lanyard /opt/lanyard
 
+ENTRYPOINT [ "/sbin/tini", "--" ]
 CMD [ "/opt/lanyard/bin/lanyard", "start" ]
